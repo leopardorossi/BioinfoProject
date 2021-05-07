@@ -6,8 +6,8 @@ We split our implementation in two main phases:
 2. Distributed space seeds counting using MapReduce approach (Java)
 
 ### Naive implementation
-1. Produce k-mer count file using Squeakr tool
-2. Order k-mers (different tests can be done)
+1. Produce k-mer count file using Squeakr tool [V]
+2. Order k-mers (different tests can be done) [V]
 3. Generate space-seeds
 4. For each generated space-seed:
    - Apply the seed to the k-mers
