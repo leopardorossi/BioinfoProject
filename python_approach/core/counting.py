@@ -54,14 +54,16 @@ class Preprocessing:
 
 class CountingStrategy(metaclass=abc.ABCMeta):
 
-    def __init__(self, seed, data):
+    def __init__(self, seed, data, families_sizes):
         self.seed = seed
         self.data = data
+        self.families_sizes = families_sizes
 
     def execute(self):
         space_seed_result = self.apply_space_seed()
-        self.create_hash_table(space_seed_result)
-        self.count()
+        hash_table = self.create_hash_table(space_seed_result)
+        counting = self.count(hash_table)
+        self.store_output_file(counting)
 
     def apply_space_seed(self):
         # Get the indexes of the ones inside the seed
@@ -76,40 +78,69 @@ class CountingStrategy(metaclass=abc.ABCMeta):
                 mask_applied_result += kData.kmer[index]
             
             result.append(KmerData(mask_applied_result, kData.freq, kData.family))
-        
+
         return result
 
     @abc.abstractmethod
     def create_hash_table(self, data):
         pass
 
-    @abc.abstractmethod
-    def count(self):
-        pass
+    def count(self, table):
+        counting = {}
+
+        for key in table.keys():
+            for k_data in table[key]:
+                # Check if the current kmer already exists in the hash table
+                if k_data.kmer in counting.keys():
+                    counting[k_data.kmer] += k_data.freq
+                else:
+                    counting[k_data.kmer] = k_data.freq
+
+        return counting
+
+    def store_output_file(self, counting):
+        with open("resources/result.txt", "w") as f:
+            for key in counting.keys():
+                f.write(f"{key}\t{counting[key]}\n")
 
 
 class LexicoGraphicalCountingStrategy(CountingStrategy):
 
     def __init__(self, seed, data):
-        super().__init__(seed, data)
+        super().__init__(seed, data, [])
 
     def create_hash_table(self, data):
-        pass
-
-    def count(self):
         pass
 
 
 class FamilyCountingStrategy(CountingStrategy):
 
-    def __init__(self):
-        pass
-
-    def apply_space_seed(self):
-        pass
+    def __init__(self, seed, data, families_sizes):
+        super().__init__(seed, data, families_sizes)
 
     def create_hash_table(self, data):
-        pass
+        hash_table = {}
 
-    def count(self):
-        pass
+        start = 0
+        for i, size in enumerate(self.families_sizes):
+            if size > 0:
+                hash_table[i+1] = data[start:(start+size)]
+                start += size
+
+        return hash_table
+
+
+def generate_stats_file(count_file, out_file):
+    stats = {}
+    with open(f"resources/{count_file}", "r") as f:
+        for line in f:
+            kmer, freq = line.split("\t")
+            if freq in stats.keys():
+                stats[freq] += 1
+            else:
+                stats[freq] = 1
+
+    with open(f"resources/{out_file}", "w") as f:
+        for key in stats.keys():
+            f.write(f"Freq: {key} Count:{stats[key]}\n")
+

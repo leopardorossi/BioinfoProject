@@ -10,7 +10,7 @@ We split our implementation in two main phases:
 2. Order k-mers (different tests can be done) [V]
 3. Generate space-seeds
 4. For each generated space-seed:
-   - Apply the seed to the k-mers
+   - Apply the seed to the k-mers [V]
    - Put the result into an hash-table to count it
 5. Produce the output file with (space-seed, counting)
 
@@ -18,11 +18,6 @@ We split our implementation in two main phases:
 - k-mer counter file
 - space-seeds file
 - sorting criteria
-
-**TO-DOs:**
-- [] Implement function to parse k-mer countings
-- [] Implement function to parse space-seeds file
-- [] Define the sorting strategies
 
 ### MapReduce implementation
 1. Produce k-mer count file using Squeakr tool
