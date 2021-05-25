@@ -1,2 +1,2 @@
-from .input_parsing import read_kmers_counting
+from .input_parsing import *
 from .counting import *

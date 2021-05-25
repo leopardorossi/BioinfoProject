@@ -1,4 +1,4 @@
-import operator
+import csv
 import abc
 
 from enum import Enum
@@ -54,16 +54,18 @@ class Preprocessing:
 
 class CountingStrategy(metaclass=abc.ABCMeta):
 
-    def __init__(self, seed, data, families_sizes):
+    def __init__(self, seed, data, families_sizes, output_path):
         self.seed = seed
         self.data = data
         self.families_sizes = families_sizes
+        self.output_path = output_path
 
     def execute(self):
         space_seed_result = self.apply_space_seed()
         hash_table = self.create_hash_table(space_seed_result)
         counting = self.count(hash_table)
         self.store_output_file(counting)
+        self.generate_stats_file()
 
     def apply_space_seed(self):
         # Get the indexes of the ones inside the seed
@@ -85,6 +87,10 @@ class CountingStrategy(metaclass=abc.ABCMeta):
     def create_hash_table(self, data):
         pass
 
+    @abc.abstractmethod
+    def description(self):
+        pass
+
     def count(self, table):
         counting = {}
 
@@ -98,25 +104,60 @@ class CountingStrategy(metaclass=abc.ABCMeta):
 
         return counting
 
+    def generate_stats_file(self):
+        stats = {}
+        with open(f"{self.output_path}/result_{self.description()}.txt", "r") as f:
+            for line in f:
+                kmer, freq = line.split("\t")
+                freq = int(freq)
+                if freq in stats.keys():
+                    stats[freq] += 1
+                else:
+                    stats[freq] = 1
+
+        with open(f"{self.output_path}/profile_{self.description()}.csv", "w") as f:
+            f_writer = csv.writer(f, delimiter=";")
+            f_writer.writerow(["Frequency", "Count"])
+            for key in stats.keys():
+                f_writer.writerow([key, stats[key]])
+
     def store_output_file(self, counting):
-        with open("resources/result.txt", "w") as f:
+        with open(f"{self.output_path}/result_{self.description()}.txt", "w") as f:
             for key in counting.keys():
                 f.write(f"{key}\t{counting[key]}\n")
 
 
 class LexicoGraphicalCountingStrategy(CountingStrategy):
 
-    def __init__(self, seed, data):
-        super().__init__(seed, data, [])
+    def __init__(self, seed, data, output_path):
+        super().__init__(seed, data, [], output_path)
 
     def create_hash_table(self, data):
-        pass
+        # With this method we do not have to create a real hash table, but
+        # we only have to order the masked kmers to count them
+        return Preprocessing.order_kmers(Preprocessing.SortingMethods.LEXICOGRAPHICAL, data)
+
+    def count(self, table):
+        # Thanks to the ordering we know that all equal masked kmer are close together, so we
+        # exploit this while counting
+        counting = {}
+
+        for item in table:
+            if item.kmer in counting.keys():
+                counting[item.kmer] += item.freq
+            else:
+                counting[item.kmer] = item.freq
+
+        return counting
+
+    def description(self):
+        return f"{self.seed}_lexi"
 
 
 class FamilyCountingStrategy(CountingStrategy):
 
-    def __init__(self, seed, data, families_sizes):
-        super().__init__(seed, data, families_sizes)
+    def __init__(self, seed, data, families_sizes, output_path):
+        super().__init__(seed, data, families_sizes, output_path)
 
     def create_hash_table(self, data):
         hash_table = {}
@@ -129,18 +170,6 @@ class FamilyCountingStrategy(CountingStrategy):
 
         return hash_table
 
-
-def generate_stats_file(count_file, out_file):
-    stats = {}
-    with open(f"resources/{count_file}", "r") as f:
-        for line in f:
-            kmer, freq = line.split("\t")
-            if freq in stats.keys():
-                stats[freq] += 1
-            else:
-                stats[freq] = 1
-
-    with open(f"resources/{out_file}", "w") as f:
-        for key in stats.keys():
-            f.write(f"Freq: {key} Count:{stats[key]}\n")
+    def description(self):
+        return f"{self.seed}_family"
 

@@ -1,5 +1,7 @@
 from .counting import Preprocessing, KmerData
 
+from functools import reduce
+
 
 def read_kmers_counting(input_file):
     # Define the array that will contain the counting
@@ -24,3 +26,33 @@ def read_kmers_counting(input_file):
             counting.append(KmerData(kmer, freq, family))
 
     return counting, families_sizes
+
+
+def generate_seed_from_pattern(pattern, kmer_length):
+    # Split the pattern into the different groups
+    groups = pattern.split("-")
+    pattern_length = reduce(lambda a, b: int(a)+int(b), groups)
+
+    if pattern_length > kmer_length:
+        raise Exception("The pattern length must be less or equal to the kmer length")
+
+    # Generate the seed
+    pattern = ""
+    for i, group in enumerate(groups):
+        if (i+1) % 2 == 0:
+            zeros = "0" * int(group)
+            pattern += zeros
+        else:
+            ones = "1" * int(group)
+            pattern += ones
+
+    # Check if the seed is palindrome
+    reverse = pattern[::-1]
+    if pattern != reverse:
+        raise Exception("The seed must be palindrome")
+
+    return pattern
+
+
+
+
