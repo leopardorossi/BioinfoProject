@@ -1,6 +1,7 @@
 from python_approach.core import *
 
 import sys
+import time
 
 if __name__ == '__main__':
 
@@ -21,8 +22,10 @@ if __name__ == '__main__':
         print(e)
         exit(1)
 
+    time_start = time.perf_counter()
+
     # Read input file
-    kmer_data, families_sizes = read_kmers_counting(params["-i"])
+    kmer_data, families_sizes = read_kmers_counting(params["-i"], seed)
 
     # Define the counting strategy according to the given parameter
     cStrategy = None
@@ -33,4 +36,10 @@ if __name__ == '__main__':
         cStrategy = LexicoGraphicalCountingStrategy(seed, kmer_data, params["-o"])
 
     # Use the strategy to count space seeds
-    cStrategy.execute()
+    counting = cStrategy.execute()
+
+    time_elapsed = (time.perf_counter() - time_start)
+    print("%5.1f secs" % time_elapsed)
+
+    # store_output_file(counting, params["-o"], cStrategy.description())
+    # generate_stats_file(params["-o"], cStrategy.description())

@@ -1,8 +1,7 @@
-import csv
 import abc
+import tracemalloc
 
 from enum import Enum
-from collections import OrderedDict
 
 
 class KmerData:
@@ -61,30 +60,24 @@ class CountingStrategy(metaclass=abc.ABCMeta):
         self.output_path = output_path
 
     def execute(self):
-        space_seed_result = self.apply_space_seed()
-        hash_table = self.create_hash_table(space_seed_result)
+        tracemalloc.start()
+
+        print("Hash table definition...")
+        hash_table = self.create_hash_table()
+        current, peak = tracemalloc.get_traced_memory()
+        print(f"Current memory usage is {current / 10 ** 6}MB; Peak was {peak / 10 ** 6}MB\n")
+
+        print("Counting...")
         counting = self.count(hash_table)
-        self.store_output_file(counting)
-        self.generate_stats_file()
+        current, peak = tracemalloc.get_traced_memory()
+        print(f"Current memory usage is {current / 10 ** 6}MB; Peak was {peak / 10 ** 6}MB\n")
 
-    def apply_space_seed(self):
-        # Get the indexes of the ones inside the seed
-        ones_positions = [i for i, c in enumerate(self.seed) if c == "1"]
-        
-        # Define the list that will contain the result of seed applying
-        result = []
-        # Loop over the data and apply the seed to the kmer
-        for kData in self.data:
-            mask_applied_result = ""
-            for index in ones_positions:
-                mask_applied_result += kData.kmer[index]
-            
-            result.append(KmerData(mask_applied_result, kData.freq, kData.family))
+        tracemalloc.stop()
 
-        return result
+        return counting
 
     @abc.abstractmethod
-    def create_hash_table(self, data):
+    def create_hash_table(self):
         pass
 
     @abc.abstractmethod
@@ -104,38 +97,16 @@ class CountingStrategy(metaclass=abc.ABCMeta):
 
         return counting
 
-    def generate_stats_file(self):
-        stats = {}
-        with open(f"{self.output_path}/result_{self.description()}.txt", "r") as f:
-            for line in f:
-                kmer, freq = line.split("\t")
-                freq = int(freq)
-                if freq in stats.keys():
-                    stats[freq] += 1
-                else:
-                    stats[freq] = 1
-
-        with open(f"{self.output_path}/profile_{self.description()}.csv", "w") as f:
-            f_writer = csv.writer(f, delimiter=";")
-            f_writer.writerow(["Frequency", "Count"])
-            for key in stats.keys():
-                f_writer.writerow([key, stats[key]])
-
-    def store_output_file(self, counting):
-        with open(f"{self.output_path}/result_{self.description()}.txt", "w") as f:
-            for key in counting.keys():
-                f.write(f"{key}\t{counting[key]}\n")
-
 
 class LexicoGraphicalCountingStrategy(CountingStrategy):
 
     def __init__(self, seed, data, output_path):
         super().__init__(seed, data, [], output_path)
 
-    def create_hash_table(self, data):
+    def create_hash_table(self):
         # With this method we do not have to create a real hash table, but
         # we only have to order the masked kmers to count them
-        return Preprocessing.order_kmers(Preprocessing.SortingMethods.LEXICOGRAPHICAL, data)
+        return Preprocessing.order_kmers(Preprocessing.SortingMethods.LEXICOGRAPHICAL, self.data)
 
     def count(self, table):
         # Thanks to the ordering we know that all equal masked kmer are close together, so we
@@ -159,13 +130,13 @@ class FamilyCountingStrategy(CountingStrategy):
     def __init__(self, seed, data, families_sizes, output_path):
         super().__init__(seed, data, families_sizes, output_path)
 
-    def create_hash_table(self, data):
+    def create_hash_table(self):
         hash_table = {}
 
         start = 0
         for i, size in enumerate(self.families_sizes):
             if size > 0:
-                hash_table[i+1] = data[start:(start+size)]
+                hash_table[i+1] = self.data[start:(start+size)]
                 start += size
 
         return hash_table
