@@ -1,36 +1,27 @@
-# BioinfoProject
+# Space seeds post-processing counter
+This repo contains the implementation of a method to apply as a post-processing operation of a k-mer counter, to count spaced k-mers.
 
-## Approach to follow
-We split our implementation in two main phases:
-1. Naive implementation of space seeds counting (Python)
-2. Distributed space seeds counting using MapReduce approach (Java)
+## How to use
+1. Clone the repository.
+2. Open a terminal window and move inside the project folder.
+3. Execute the following command
 
-### Naive implementation
-1. Produce k-mer count file using Squeakr tool [V]
-2. Order k-mers (different tests can be done) [V]
-3. Generate space-seeds
-   - Random generation of space-seeds (palindromi e non)
-4. For each generated space-seed:
-   - Apply the seed to the k-mers [V]
-   - Put the result into an hash-table to count it
-5. Produce the output file with (space-seed, counting)
+```
+./__main__.py -i {input_path} -m {method} -o {output_path} -p {space_seed_pattern} -k {k_size}
+```
+The parameters to provide are the following:
+* -i: input_path = the path to the input file (k-mer counter output)
+* -m: method = method to use. It is possible to choose between 1 (Lexicographical sorting) and 2 (Family sorting)
+* -o: output_path = the path where to store the output files
+* -k: k_size = the length of the k-mers
+* -p: space_seed_pattern = the pattern of the space seed, where the odd characters are 1 and the even ones are 0. The pattern must be **palindrome**
 
-**Inputs:**
-- k-mer counter file (-i)
-- space-seed (-p)
-- method (-m)
-- output file path (-o)
-- k-mer length (-k)
+*Example*
+```
+./__main__.py -i resources/inputFile -m 1 -o resources -p 3-3-2-12-2-3-3 -k 28
+```
+In this example the seed that corresponds to the pattern is: 1110001100000000000011000111
 
-**To-do:**
-- What to do when the input sequence is larger? Scalability
-- Make program independent from the input type
-
-### MapReduce implementation
-1. Produce k-mer count file using Squeakr tool
-2. Generate space-seeds
-3. Map phase:
-   - Emit pairs (first-last chars, sequence)
-4. Reduce phase:
-   - Put the input pairs into a has-table and count them
-5. Aggregate final countings
+## Team
+Alice Codogno
+Leonardo Rossi
