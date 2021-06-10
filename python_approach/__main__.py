@@ -2,6 +2,7 @@ from python_approach.core import *
 
 import sys
 import time
+import tracemalloc
 
 if __name__ == '__main__':
 
@@ -18,6 +19,7 @@ if __name__ == '__main__':
     seed = ""
     try:
         seed = generate_seed_from_pattern(params["-p"], int(params["-k"]))
+        print(seed)
     except Exception as e:
         print(e)
         exit(1)
@@ -28,18 +30,26 @@ if __name__ == '__main__':
     kmer_data, families_sizes = read_kmers_counting(params["-i"], seed)
 
     # Define the counting strategy according to the given parameter
+    tracemalloc.start()
     cStrategy = None
     if params["-m"] == Preprocessing.SortingMethods.FAMILY:
-        kmer_data = Preprocessing.order_kmers(Preprocessing.SortingMethods.FAMILY, kmer_data)
+        Preprocessing.order_kmers(Preprocessing.SortingMethods.FAMILY, kmer_data)
         cStrategy = FamilyCountingStrategy(seed, kmer_data, families_sizes, params["-o"])
     else:
+        Preprocessing.order_kmers(Preprocessing.SortingMethods.LEXICOGRAPHICAL, kmer_data)
         cStrategy = LexicoGraphicalCountingStrategy(seed, kmer_data, params["-o"])
 
     # Use the strategy to count space seeds
     counting = cStrategy.execute()
 
-    time_elapsed = (time.perf_counter() - time_start)
-    print("%5.1f secs" % time_elapsed)
+    current, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
 
-    # store_output_file(counting, params["-o"], cStrategy.description())
-    # generate_stats_file(params["-o"], cStrategy.description())
+    time_elapsed = (time.perf_counter() - time_start)
+
+    print("%5.1f secs" % time_elapsed)
+    print(f"Current memory usage is {current / 10 ** 6}MB; Peak was {peak / 10 ** 6}MB\n")
+
+    store_output_file(counting, params["-o"], cStrategy.description())
+    generate_stats_file(params["-o"], cStrategy.description())
+

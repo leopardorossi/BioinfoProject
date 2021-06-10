@@ -23,9 +23,9 @@ class Preprocessing:
     @staticmethod
     def order_kmers(method, data):
         if method == Preprocessing.SortingMethods.LEXICOGRAPHICAL:
-            return sorted(data, key=lambda k_data: k_data.kmer)
+            data.sort(key=lambda k_data: k_data.kmer)
         elif method == Preprocessing.SortingMethods.FAMILY:
-            return sorted(data, key=lambda k_data: k_data.family)
+            data.sort(key=lambda k_data: k_data.family)
 
     @staticmethod    
     def map_first_last_bases(first_base, last_base):
@@ -60,19 +60,19 @@ class CountingStrategy(metaclass=abc.ABCMeta):
         self.output_path = output_path
 
     def execute(self):
-        tracemalloc.start()
+        # tracemalloc.start()
 
         print("Hash table definition...")
         hash_table = self.create_hash_table()
-        current, peak = tracemalloc.get_traced_memory()
-        print(f"Current memory usage is {current / 10 ** 6}MB; Peak was {peak / 10 ** 6}MB\n")
+        # current, peak = tracemalloc.get_traced_memory()
+        # print(f"Current memory usage is {current / 10 ** 6}MB; Peak was {peak / 10 ** 6}MB\n")
 
         print("Counting...")
         counting = self.count(hash_table)
-        current, peak = tracemalloc.get_traced_memory()
-        print(f"Current memory usage is {current / 10 ** 6}MB; Peak was {peak / 10 ** 6}MB\n")
+        # current, peak = tracemalloc.get_traced_memory()
+        # print(f"Current memory usage is {current / 10 ** 6}MB; Peak was {peak / 10 ** 6}MB\n")
 
-        tracemalloc.stop()
+        # tracemalloc.stop()
 
         return counting
 
@@ -106,7 +106,7 @@ class LexicoGraphicalCountingStrategy(CountingStrategy):
     def create_hash_table(self):
         # With this method we do not have to create a real hash table, but
         # we only have to order the masked kmers to count them
-        return Preprocessing.order_kmers(Preprocessing.SortingMethods.LEXICOGRAPHICAL, self.data)
+        return self.data
 
     def count(self, table):
         # Thanks to the ordering we know that all equal masked kmer are close together, so we
